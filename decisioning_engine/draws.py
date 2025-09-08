@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from collections import deque
 
 # @dataclass
-# class InstantCashoutDraw:
+# class MegaCashDraw:
 #     TOTAL_CONTRIBUTION = 0
 #     RUNNING_BALANCE = 0
 #     BATCH_CONTRIBUTION = 0
@@ -261,7 +261,7 @@ from collections import deque
 
 
 @dataclass
-class InstantCashoutDraw:
+class MegaCashDraw:
     # Constants
     SHARE_RATIO = (0.4, 0.35, 0.25)
     BASE_N = 40
@@ -409,5 +409,5 @@ class InstantCashoutDraw:
 # bands = [150, 300, 450]
 # share_values = [10000, 20000, 30000]
 
-# test = InstantCashoutDraw().sharemonies(bands=bands, share_values=share_values)
+# test = MegaCashDraw().sharemonies(bands=bands, share_values=share_values)
 # print(test)
