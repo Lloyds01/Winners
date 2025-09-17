@@ -19,22 +19,7 @@ class DalsHourMgr:
         self._JACKPOT_REWARDS = {10: 50000, 50: 250000, 100: 500000, 200: 1000000}
 
         self.dalshr_config = self.constant.dalshr_config
-        # self.dalshr_config = {
-        #     "tier": {
-        #         10: {"min": 5, "step": 2},
-        #         50: {"min": 10, "step": 3},
-        #         100: {"min": 20, "step": 5},
-        #         200: {"min": 50, "step": 10},
-        #     },
-        #     "rtp": 0.7,
-        #     "rt0": 0.3,
-        #     "win_factor": {
-        #         10: 0.5,
-        #         50: 0.5,
-        #         100: 0.5,
-        #         200: 0.5,
-        #     },
-        # }
+      
 
         self.upper_tier_jackpot_percent = 25
         self.middle_tier_jackpot_percent = 25
