@@ -9,7 +9,7 @@ from collections import deque
 # from .models import ConstantVariable
 
 @dataclass
-class MegaCashDraw:
+class MegaCashDraw:  #Instant Cashout
     # Constants
     SHARE_RATIO = (0.4, 0.35, 0.25)
     BASE_N = 40
@@ -191,312 +191,312 @@ class ConstantVariable:
         return None
 
 
-class SalaryForLifeDraw:
-    @staticmethod
-    def _generate_winning_combo():
-        """Generate 5 unique numbers from 1–49 without computing all combinations."""
-        return random.sample(range(1, 50), 5)
+# class SalaryForLifeDraw:
+#     @staticmethod
+#     def _generate_winning_combo():
+#         """Generate 5 unique numbers from 1–49 without computing all combinations."""
+#         return random.sample(range(1, 50), 5)
 
-    @staticmethod
-    def _get_const_obj():
-        """Fetch ConstantVariable once and reuse."""
-        return ConstantVariable.objects.all().last()
+#     @staticmethod
+#     def _get_const_obj():
+#         """Fetch ConstantVariable once and reuse."""
+#         return ConstantVariable.objects.all().last()
 
-    @staticmethod
-    def _process_play(play, combo, line_prices, jackpot_amount, rtp, banker=False):
-        """Process one play and return potential winnings."""
-        # Count matches
-        matched_count = search_number_occurences(play, combo)
+#     @staticmethod
+#     def _process_play(play, combo, line_prices, jackpot_amount, rtp, banker=False):
+#         """Process one play and return potential winnings."""
+#         # Count matches
+#         matched_count = search_number_occurences(play, combo)
 
-        # Compute potential winnings
-        if banker:
-            win_amount = get_banker_potential_winning(
-                matched_count, line_prices, rtp, jackpot_amount
-            )
-        else:
-            win_amount = get_potential_winning(
-                matched_count, line_prices, rtp, jackpot_amount
-            )
+#         # Compute potential winnings
+#         if banker:
+#             win_amount = get_banker_potential_winning(
+#                 matched_count, line_prices, rtp, jackpot_amount
+#             )
+#         else:
+#             win_amount = get_potential_winning(
+#                 matched_count, line_prices, rtp, jackpot_amount
+#             )
 
-        return win_amount, matched_count
+#         return win_amount, matched_count
 
-    @staticmethod
-    def _filter_winnings(winnings, rtp, const_obj):
-        """Apply ConstantVariable rules to winnings list."""
-        filtered = []
-        for play, amt, matches in winnings:
-            if amt <= 0:
-                continue
+#     @staticmethod
+#     def _filter_winnings(winnings, rtp, const_obj):
+#         """Apply ConstantVariable rules to winnings list."""
+#         filtered = []
+#         for play, amt, matches in winnings:
+#             if amt <= 0:
+#                 continue
 
-            # Cap by RTP if needed
-            if const_obj.restrict_max_winnings and amt > rtp:
-                continue
+#             # Cap by RTP if needed
+#             if const_obj.restrict_max_winnings and amt > rtp:
+#                 continue
 
-            # Restrict to lower tiers if enabled
-            if const_obj.restrict_wins and matches > 3:
-                continue
+#             # Restrict to lower tiers if enabled
+#             if const_obj.restrict_wins and matches > 3:
+#                 continue
 
-            filtered.append((play, amt, matches))
-        return filtered
+#             filtered.append((play, amt, matches))
+#         return filtered
 
-    @staticmethod
-    def _pick_winner(winnings, combo, rtp, banker=False):
-        """Select the best winner from potential winnings."""
-        if not winnings:
-            return {
-                "combination": combo,
-                "winning": "No Winner",
-                "winning_play": [],
-                "winning_amount": 0,
-                "winnings": [],
-                "rtp": rtp,
-                "banker": banker,
-            }
+#     @staticmethod
+#     def _pick_winner(winnings, combo, rtp, banker=False):
+#         """Select the best winner from potential winnings."""
+#         if not winnings:
+#             return {
+#                 "combination": combo,
+#                 "winning": "No Winner",
+#                 "winning_play": [],
+#                 "winning_amount": 0,
+#                 "winnings": [],
+#                 "rtp": rtp,
+#                 "banker": banker,
+#             }
 
-        # Pick the highest amount
-        play, amt, matches = max(winnings, key=lambda x: x[1])
+#         # Pick the highest amount
+#         play, amt, matches = max(winnings, key=lambda x: x[1])
 
-        return {
-            "combination": combo,
-            "winning": f"Matched {matches} numbers",
-            "winning_play": play,
-            "winning_amount": amt,
-            "winnings": winnings,
-            "rtp": rtp,
-            "banker": banker,
-        }
+#         return {
+#             "combination": combo,
+#             "winning": f"Matched {matches} numbers",
+#             "winning_play": play,
+#             "winning_amount": amt,
+#             "winnings": winnings,
+#             "rtp": rtp,
+#             "banker": banker,
+#         }
 
-    @classmethod
-    def draw(cls, plays, rtp, line_prices, jackpot_amount, disburse_jackpot=False):
-        """Regular draw method."""
-        combo = cls._generate_winning_combo()
-        const_obj = cls._get_const_obj()
-        # const_obj
+#     @classmethod
+#     def draw(cls, plays, rtp, line_prices, jackpot_amount, disburse_jackpot=False):
+#         """Regular draw method."""
+#         combo = cls._generate_winning_combo()
+#         const_obj = cls._get_const_obj()
+#         # const_obj
 
-        winnings = []
-        for play in plays:
-            amt, matches = cls._process_play(
-                play, combo, line_prices, jackpot_amount, rtp, banker=False
-            )
-            winnings.append((play, amt, matches))
+#         winnings = []
+#         for play in plays:
+#             amt, matches = cls._process_play(
+#                 play, combo, line_prices, jackpot_amount, rtp, banker=False
+#             )
+#             winnings.append((play, amt, matches))
 
-        filtered = cls._filter_winnings(winnings, rtp, const_obj)
-        return cls._pick_winner(filtered, combo, rtp, banker=False)
+#         filtered = cls._filter_winnings(winnings, rtp, const_obj)
+#         return cls._pick_winner(filtered, combo, rtp, banker=False)
 
-    @classmethod
-    def banker_decisioning(
-        cls, plays, rtp, line_prices, jackpot_amount, disburse_jackpot=False
-    ):
-        """Banker draw method."""
-        combo = cls._generate_winning_combo()
-        const_obj = cls._get_const_obj()
+#     @classmethod
+#     def banker_decisioning(
+#         cls, plays, rtp, line_prices, jackpot_amount, disburse_jackpot=False
+#     ):
+#         """Banker draw method."""
+#         combo = cls._generate_winning_combo()
+#         const_obj = cls._get_const_obj()
 
-        winnings = []
-        for play in plays:
-            amt, matches = cls._process_play(
-                play, combo, line_prices, jackpot_amount, rtp, banker=True
-            )
-            winnings.append((play, amt, matches))
+#         winnings = []
+#         for play in plays:
+#             amt, matches = cls._process_play(
+#                 play, combo, line_prices, jackpot_amount, rtp, banker=True
+#             )
+#             winnings.append((play, amt, matches))
 
-        filtered = cls._filter_winnings(winnings, rtp, const_obj)
-        return cls._pick_winner(filtered, combo, rtp, banker=True)
-
-
-
-# bands = [150, 300, 450]
-# share_values = [10000, 20000, 30000]
-
-# test = MegaCashDraw().sharemonies(bands=bands, share_values=share_values)
-# print(test)
+#         filtered = cls._filter_winnings(winnings, rtp, const_obj)
+#         return cls._pick_winner(filtered, combo, rtp, banker=True)
 
 
-# import random
 
-# ===============================
-# Stub Functions (Mocks)
-# ===============================
+# # bands = [150, 300, 450]
+# # share_values = [10000, 20000, 30000]
 
-def search_number_occurences(play, combo):
-    """Return how many numbers match between play and combo."""
-    return len(set(play) & set(combo))
-
-def get_potential_winning(matches, line_prices, rtp, jackpot_amount):
-    """Return winnings for a regular player (very simplified)."""
-    if matches < 2:
-        return 0
-    if matches == 5:
-        return jackpot_amount
-    return line_prices[matches - 2] * matches  # just a mock formula
-
-def get_banker_potential_winning(matches, line_prices, rtp, jackpot_amount):
-    """Return winnings for banker mode (different rule)."""
-    if matches < 2:
-        return 0
-    if matches == 5:
-        return int(jackpot_amount * 0.8)  # banker pays less on jackpot
-    return line_prices[matches - 2] * matches * 2  # banker doubles payouts
+# # test = MegaCashDraw().sharemonies(bands=bands, share_values=share_values)
+# # print(test)
 
 
-# ===============================
-# Mock ConstantVariable
-# ===============================
-
-
-class ConstantVariable:
-    """Stub for Django ConstantVariable.objects.last()"""
-
-    def __init__(self):
-        self.restrict_s4l_to_lower_wins = False
-        self.max_s4l_single_win_to_rtp = 10
-        self.s4l_number_of_match_limit = 2
-        self.limit_wining_amount = False
-        self.restrict_max_winnings = False
-        self.restrict_wins = False
-
-    @classmethod
-    def objects(cls):
-        return cls()
-
-    def all(self):
-        return self
-
-    def last(self):
-        return ConstantVariable()
-
-    def save(self):
-        return None
+# # import random
 
 # # ===============================
-# # SteadyWinDraw Class
+# # Stub Functions (Mocks)
 # # ===============================
 
-class SteadyWinDraw:
-    @staticmethod
-    def _generate_winning_combo():
-        """Generate 5 unique numbers from 1–49 without computing all combinations."""
-        return random.sample(range(1, 50), 5)
+# def search_number_occurences(play, combo):
+#     """Return how many numbers match between play and combo."""
+#     return len(set(play) & set(combo))
 
-    @staticmethod
-    def _get_const_obj():
-        """Fetch ConstantVariable once and reuse."""
-        return ConstantVariable.objects().last()
+# def get_potential_winning(matches, line_prices, rtp, jackpot_amount):
+#     """Return winnings for a regular player (very simplified)."""
+#     if matches < 2:
+#         return 0
+#     if matches == 5:
+#         return jackpot_amount
+#     return line_prices[matches - 2] * matches  # just a mock formula
 
-    @staticmethod
-    def _process_play(play, combo, line_prices, jackpot_amount, rtp, banker=False):
-        """Process one play and return potential winnings."""
-        # Count matches
-        matched_count = search_number_occurences(play, combo)
-
-        # Compute potential winnings
-        if banker:
-            win_amount = get_banker_potential_winning(
-                matched_count, line_prices, rtp, jackpot_amount
-            )
-        else:
-            win_amount = get_potential_winning(
-                matched_count, line_prices, rtp, jackpot_amount
-            )
-
-        return win_amount, matched_count
-
-    @staticmethod
-    def _filter_winnings(winnings, rtp, const_obj):
-        """Apply ConstantVariable rules to winnings list."""
-        filtered = []
-        for play, amt, matches in winnings:
-            if amt <= 0:
-                continue
-
-            # Cap by RTP if needed
-            if const_obj.restrict_max_winnings and amt > rtp:
-                continue
-
-            # Restrict to lower tiers if enabled
-            if const_obj.restrict_wins and matches > 3:
-                continue
-
-            filtered.append((play, amt, matches))
-        return filtered
-
-    @staticmethod
-    def _pick_winner(winnings, combo, rtp, banker=False):
-        """Select the best winner from potential winnings."""
-        if not winnings:
-            return {
-                "combination": combo,
-                "winning": "No Winner",
-                "winning_play": [],
-                "winning_amount": 0,
-                "winnings": [],
-                "rtp": rtp,
-                "banker": banker,
-            }
-
-        # Pick the highest amount
-        play, amt, matches = max(winnings, key=lambda x: x[1])
-
-        return {
-            "combination": combo,
-            "winning": f"Matched {matches} numbers",
-            "winning_play": play,
-            "winning_amount": amt,
-            "winnings": winnings,
-            "rtp": rtp,
-            "banker": banker,
-        }
-
-    @classmethod
-    def draw(cls, plays, rtp, line_prices, jackpot_amount, disburse_jackpot=False):
-        """Regular draw method."""
-        combo = cls._generate_winning_combo()
-        const_obj = cls._get_const_obj()
-
-        winnings = []
-        for play in plays:
-            amt, matches = cls._process_play(
-                play, combo, line_prices, jackpot_amount, rtp, banker=False
-            )
-            winnings.append((play, amt, matches))
-
-        filtered = cls._filter_winnings(winnings, rtp, const_obj)
-        return cls._pick_winner(filtered, combo, rtp, banker=False)
-
-    @classmethod
-    def banker_decisioning(
-        cls, plays, rtp, line_prices, jackpot_amount, disburse_jackpot=False
-    ):
-        """Banker draw method."""
-        combo = cls._generate_winning_combo()
-        const_obj = cls._get_const_obj()
-
-        winnings = []
-        for play in plays:
-            amt, matches = cls._process_play(
-                play, combo, line_prices, jackpot_amount, rtp, banker=True
-            )
-            winnings.append((play, amt, matches))
-
-        filtered = cls._filter_winnings(winnings, rtp, const_obj)
-        return cls._pick_winner(filtered, combo, rtp, banker=True)
+# def get_banker_potential_winning(matches, line_prices, rtp, jackpot_amount):
+#     """Return winnings for banker mode (different rule)."""
+#     if matches < 2:
+#         return 0
+#     if matches == 5:
+#         return int(jackpot_amount * 0.8)  # banker pays less on jackpot
+#     return line_prices[matches - 2] * matches * 2  # banker doubles payouts
 
 
-# ===============================
-# Run Simulation
-# ===============================
+# # ===============================
+# # Mock ConstantVariable
+# # ===============================
 
-if __name__ == "__main__":
-    plays = [
-        random.sample(range(1, 50), 5) for _ in range(100)  # simulate 100 player tickets
-    ]
-    rtp = 10000
-    line_prices = [100, 200, 500, 1000]
-    jackpot_amount = 1_000_000
 
-    print("🎲 Regular Draw:")
-    print(SalaryForLifeDraw.draw(plays, rtp, line_prices, jackpot_amount))
+# class ConstantVariable:
+#     """Stub for Django ConstantVariable.objects.last()"""
 
-    print("\n🏦 Banker Decisioning:")
-    print(SalaryForLifeDraw.banker_decisioning(plays, rtp, line_prices, jackpot_amount))
+#     def __init__(self):
+#         self.restrict_s4l_to_lower_wins = False
+#         self.max_s4l_single_win_to_rtp = 10
+#         self.s4l_number_of_match_limit = 2
+#         self.limit_wining_amount = False
+#         self.restrict_max_winnings = False
+#         self.restrict_wins = False
+
+#     @classmethod
+#     def objects(cls):
+#         return cls()
+
+#     def all(self):
+#         return self
+
+#     def last(self):
+#         return ConstantVariable()
+
+#     def save(self):
+#         return None
+
+# # # ===============================
+# # # SteadyWinDraw Class
+# # # ===============================
+
+# class SteadyWinDraw:
+#     @staticmethod
+#     def _generate_winning_combo():
+#         """Generate 5 unique numbers from 1–49 without computing all combinations."""
+#         return random.sample(range(1, 50), 5)
+
+#     @staticmethod
+#     def _get_const_obj():
+#         """Fetch ConstantVariable once and reuse."""
+#         return ConstantVariable.objects().last()
+
+#     @staticmethod
+#     def _process_play(play, combo, line_prices, jackpot_amount, rtp, banker=False):
+#         """Process one play and return potential winnings."""
+#         # Count matches
+#         matched_count = search_number_occurences(play, combo)
+
+#         # Compute potential winnings
+#         if banker:
+#             win_amount = get_banker_potential_winning(
+#                 matched_count, line_prices, rtp, jackpot_amount
+#             )
+#         else:
+#             win_amount = get_potential_winning(
+#                 matched_count, line_prices, rtp, jackpot_amount
+#             )
+
+#         return win_amount, matched_count
+
+#     @staticmethod
+#     def _filter_winnings(winnings, rtp, const_obj):
+#         """Apply ConstantVariable rules to winnings list."""
+#         filtered = []
+#         for play, amt, matches in winnings:
+#             if amt <= 0:
+#                 continue
+
+#             # Cap by RTP if needed
+#             if const_obj.restrict_max_winnings and amt > rtp:
+#                 continue
+
+#             # Restrict to lower tiers if enabled
+#             if const_obj.restrict_wins and matches > 3:
+#                 continue
+
+#             filtered.append((play, amt, matches))
+#         return filtered
+
+#     @staticmethod
+#     def _pick_winner(winnings, combo, rtp, banker=False):
+#         """Select the best winner from potential winnings."""
+#         if not winnings:
+#             return {
+#                 "combination": combo,
+#                 "winning": "No Winner",
+#                 "winning_play": [],
+#                 "winning_amount": 0,
+#                 "winnings": [],
+#                 "rtp": rtp,
+#                 "banker": banker,
+#             }
+
+#         # Pick the highest amount
+#         play, amt, matches = max(winnings, key=lambda x: x[1])
+
+#         return {
+#             "combination": combo,
+#             "winning": f"Matched {matches} numbers",
+#             "winning_play": play,
+#             "winning_amount": amt,
+#             "winnings": winnings,
+#             "rtp": rtp,
+#             "banker": banker,
+#         }
+
+#     @classmethod
+#     def draw(cls, plays, rtp, line_prices, jackpot_amount, disburse_jackpot=False):
+#         """Regular draw method."""
+#         combo = cls._generate_winning_combo()
+#         const_obj = cls._get_const_obj()
+
+#         winnings = []
+#         for play in plays:
+#             amt, matches = cls._process_play(
+#                 play, combo, line_prices, jackpot_amount, rtp, banker=False
+#             )
+#             winnings.append((play, amt, matches))
+
+#         filtered = cls._filter_winnings(winnings, rtp, const_obj)
+#         return cls._pick_winner(filtered, combo, rtp, banker=False)
+
+#     @classmethod
+#     def banker_decisioning(
+#         cls, plays, rtp, line_prices, jackpot_amount, disburse_jackpot=False
+#     ):
+#         """Banker draw method."""
+#         combo = cls._generate_winning_combo()
+#         const_obj = cls._get_const_obj()
+
+#         winnings = []
+#         for play in plays:
+#             amt, matches = cls._process_play(
+#                 play, combo, line_prices, jackpot_amount, rtp, banker=True
+#             )
+#             winnings.append((play, amt, matches))
+
+#         filtered = cls._filter_winnings(winnings, rtp, const_obj)
+#         return cls._pick_winner(filtered, combo, rtp, banker=True)
+
+
+# # ===============================
+# # Run Simulation
+# # ===============================
+
+# if __name__ == "__main__":
+#     plays = [
+#         random.sample(range(1, 50), 5) for _ in range(100)  # simulate 100 player tickets
+#     ]
+#     rtp = 10000
+#     line_prices = [100, 200, 500, 1000]
+#     jackpot_amount = 1_000_000
+
+#     print("🎲 Regular Draw:")
+#     print(SalaryForLifeDraw.draw(plays, rtp, line_prices, jackpot_amount))
+
+#     print("\n🏦 Banker Decisioning:")
+#     print(SalaryForLifeDraw.banker_decisioning(plays, rtp, line_prices, jackpot_amount))
 
 
 
@@ -796,440 +796,440 @@ if __name__ == "__main__":
 
 
 
-class SalaryForLifeDraw:
-    @staticmethod
-    def draw(plays, rtp, line_prices, jackpot_amount, disburse_jackpot=False) -> dict:
-        random_combo = list(itertools.combinations(range(1, 50), 5))
-        random.shuffle(random_combo)
-        const_obj = ConstantVariable.objects.all().last()
-        best_match = 0
-        best_winners = 0
-        best_match_combo = []
-
-        datetime.datetime.now()
-
-        restrict_or_not = const_obj.restrict_s4l_to_lower_wins
-        max_win_lim_ratio = const_obj.max_s4l_single_win_to_rtp
-
-        best_match_with_jkpt = 0
-        best_match_with_jkpt_combo = []
-
-        best_match_witho_jkpt = 0
-        best_match_witho_jkpt_combo = []
-
-        # print(line_prices)
-
-        # for combo in plays:
-        #     print(combo)
-        # for index, combo in enumerate(random_combo):
-
-        #     occurences = map(
-        #         lambda user_play: search_number_occurences(combo, user_play), plays
-        #     )  # CHECK FOR HOW MANY NUMBERS MATCH FOR EVERY COMBINATION IN LIST OF NUMBERS
-
-        #     play_occurences = zip(
-        #         occurences, plays
-        #     )  # Match number of occurences to number of matches found in selected combination
-        #     over3ocurrences = list(
-        #         filter(lambda x: x[0], play_occurences)
-        #     )  # FILTER ALL VALUES THAT ARE NOT 3 AND ABOVE (FILTER WITH FALSE)
-
-        #     play_occurences_with_amount = map(
-        #         lambda played: get_potential_winning(
-        #             played, line_prices, jackpot_amount
-        #         ),
-        #         over3ocurrences,
-        #     )
-
-        #     total_sum = 0
-        #     play_occurences_with_amount = list(play_occurences_with_amount)
-        #     # CALCULATE THE TOTAL WINNING AMOUNT
-        #     for index, ocurrence in enumerate(play_occurences_with_amount):
-        #         total_sum += ocurrence[-1]
-
-        #     has_jkpt = bool(
-        #         list(filter(lambda x: x[0] == 5, play_occurences_with_amount))
-        #     )
-        #     match = total_sum / rtp * 100
-
-        #     # print("TOTAL SUM ::", total_sum, "RTP ::", rtp)
-
-        #     # if match > 95 and match < 105:
-        #     #     input()
-
-        #     # if match > best_match and match < 100:
-
-        #     if match > best_match and match < 100:
-        #         best_match = match
-        #         best_match_combo = combo
-        #         best_total_sum = total_sum
-        #     if match > best_match_with_jkpt and match < 100 and has_jkpt:
-        #         best_match_with_jkpt = match
-        #         best_match_with_jkpt_combo = combo
-        #     if match > best_match_witho_jkpt and match < 100 and (not has_jkpt):
-        #         best_match_witho_jkpt = match
-        #         best_match_witho_jkpt_combo = combo
-
-        for index, combo in enumerate(random_combo):
-            occurences = map(
-                lambda user_play: search_number_occurences(
-                    combo, user_play, const_obj.s4l_number_of_match_limit
-                ),
-                plays,
-            )  # CHECK FOR HOW MANY NUMBERS MATCH FOR EVERY COMBINATION IN LIST OF NUMBERS
-
-            play_occurences = zip(
-                occurences, plays
-            )  # Match number of occurences to number of matches found in selected combination
-            over3ocurrences = list(
-                filter(lambda x: x[0], play_occurences)
-            )  # FILTER ALL VALUES THAT ARE NOT 3 AND ABOVE (FILTER WITH FALSE)
-
-            # NOW FILTER HAS BEEN ALTERED TO ALLOW 2 AND ABOVE WIN COMBOs
-
-            play_occurences_with_amount = map(
-                lambda played: get_potential_winning(
-                    played, line_prices, jackpot_amount
-                ),
-                over3ocurrences,
-            )
-
-            total_sum = 0
-            play_occurences_with_amount = list(play_occurences_with_amount)
-            # CALCULATE THE TOTAL WINNING AMOUNT
-            for index, ocurrence in enumerate(play_occurences_with_amount):
-                total_sum += ocurrence[-1]
-
-                if rtp / ocurrence[-1] < max_win_lim_ratio:
-                    total_sum = 99999999999
-                    break
-
-            if total_sum >= 99999999999:
-                continue
-
-            has_jkpt = bool(
-                list(filter(lambda x: x[0] == 5, play_occurences_with_amount))
-            )
-            match = total_sum / rtp * 100
-            winners = len(over3ocurrences)
-
-            # if match > 10 and match < 100 and len(over3ocurrences) >= 3: print(match, "-->", winners, "-->", int(match*winners))
-
-            # print("TOTAL SUM ::", total_sum, "RTP ::", rtp)
-
-            # if match > 95 and match < 105:
-            #     input()
-
-            # if match > best_match and match < 100:
-
-            if (winners >= best_winners or match > best_match) and match < 100:
-                if winners == best_winners and match < best_match and restrict_or_not:
-                    # print("SWITCHING MATCH :::", best_match, "-->", match)
-                    # print("SWITCHING WINN :::", best_winners, "-->", winners)
-                    best_match = match
-                    best_winners = winners
-                    best_match_combo = combo
-
-                elif winners > best_winners:
-                    # print("SWITCHING MATCH :::", best_match, "-->", match)
-                    # print("SWITCHING WINN :::", best_winners, "-->", winners)
-                    best_match = match
-                    best_winners = winners
-                    best_match_combo = combo
-
-                elif best_winners == 0:
-                    # print("SWITCHING MATCH :::", best_match, "-->", match)
-                    # print("SWITCHING WINN :::", best_winners, "-->", winners)
-                    best_match = match
-                    best_winners = winners
-                    best_match_combo = combo
-
-                if match > best_match and winners >= best_winners:
-                    best_match = match
-                    best_winners = winners
-                    best_match_combo = combo
-
-            # if match < 20:win_n_matches.append((int(best_match), best_winners))
-
-            if match > best_match_with_jkpt and match < 20 and has_jkpt:
-                best_match_with_jkpt = match
-                best_match_with_jkpt_combo = combo
-            if match > best_match_witho_jkpt and match < 20 and (not has_jkpt):
-                best_match_witho_jkpt = match
-                best_match_witho_jkpt_combo = combo
-
-        #     with open("s4ldraw.txt", "a") as file:
-        #         file.write(f"TIME :: {now.strftime('%d-%m %H:%M')}, BEST MATCH ::{best_match}, MATCH ::{match}, COMBO ::{best_match_combo} , TOTAL SUM ::{best_total_sum}\n")
-
-        # print("BEST MATCH ::", best_match, "MATCH ::", match, "COMBO ::", best_match_combo , "TOTAL SUM ::", best_total_sum)
-
-        # prices = SalaryForLifeDraw.filter_winnings(best_match_combo, plays, line_prices, jackpot_amount)
-        # from pprint import pprint
-
-        # pprint(prices)
-
-        return dict(
-            best_match=best_match,
-            best_match_combo=best_match_combo,
-            best_match_with_jkpt=best_match_with_jkpt,
-            best_match_with_jkpt_combo=best_match_with_jkpt_combo,
-            best_match_witho_jkpt=best_match_witho_jkpt,
-            best_match_witho_jkpt_combo=best_match_witho_jkpt_combo,
-        )
-
-    @staticmethod
-    def banker_decisioning(
-        plays, rtp, line_prices, jackpot_amount, disburse_jackpot=False
-    ) -> dict:
-        # print(":::::::::::NEW-TP:::", rtp)
-        print(plays)
-        random_combo = list(itertools.combinations(range(1, 49), 5))
-        random.shuffle(random_combo)
-        const_obj = ConstantVariable.objects.all().last()
-        best_match = 0
-        best_winners = 0
-        best_match_combo = []
-
-        LIMIT_WINING_AMOUNT = const_obj.limit_wining_amount
-        const_obj.limit_wining_amount = not const_obj.limit_wining_amount
-        const_obj.save()
-        # print(LIMIT_WINING_AMOUNT , "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
-        restrict_or_not = const_obj.restrict_s4l_to_lower_wins
-        max_win_lim_ratio = const_obj.max_s4l_single_win_to_rtp
-
-        best_match_with_jkpt = 0
-        best_match_with_jkpt_combo = []
-
-        best_match_witho_jkpt = 0
-        best_match_witho_jkpt_combo = []
-
-        best_total_sum = 0
-        for combo in plays:
-            print(combo)
-
-        for index, combo in enumerate(random_combo):
-            occurences = map(
-                lambda user_play: search_number_occurences(
-                    combo, user_play, const_obj.s4l_number_of_match_limit
-                ),
-                plays,
-            )  # CHECK FOR HOW MANY NUMBERS MATCH FOR EVERY COMBINATION IN LIST OF NUMBERS
-
-            play_occurences = zip(
-                occurences, plays
-            )  # Match number of occurences to number of matches found in selected combination
-            over3ocurrences = list(
-                filter(lambda x: x[0], play_occurences)
-            )  # FILTER ALL VALUES THAT ARE NOT 3 AND ABOVE (FILTER WITH FALSE)
-
-            # NOW FILTER HAS BEEN ALTERED TO ALLOW 2 AND ABOVE WIN COMBOs
-
-            play_occurences_with_amount = map(
-                lambda played: get_banker_potential_winning(
-                    played, line_prices, jackpot_amount, ticket_rtp=played[1][2]
-                ),
-                over3ocurrences,
-            )
-
-            # for ticket in play_occurences_with_amount:
-            #     print(ticket)
-
-            total_sum = 0
-            play_occurences_with_amount = list(play_occurences_with_amount)
-            # CALCULATE THE TOTAL WINNING AMOUNT
-            for index, ocurrence in enumerate(play_occurences_with_amount):
-                if LIMIT_WINING_AMOUNT:
-                    break
-
-                total_sum += ocurrence[-1]
-
-                if rtp / ocurrence[-1] < max_win_lim_ratio:
-                    total_sum = 99999999999
-                    break
-
-            if total_sum >= 99999999999:
-                continue
-
-            has_jkpt = bool(
-                list(filter(lambda x: x[0] == 5, play_occurences_with_amount))
-            )
-            match = total_sum / rtp * 100
-            winners = len(over3ocurrences)
-
-            if (winners >= best_winners or match > best_match) and match < 100:
-                # print("MATCH ::#:: ", match)
-
-                if winners == best_winners and match < best_match and restrict_or_not:
-                    # print("SWITCHING MATCH :::", best_match, "-->", match)
-                    # print("SWITCHING WINN :::", best_winners, "-->", winners)
-                    best_match = match
-                    best_winners = winners
-                    best_match_combo = combo
-                    best_total_sum = total_sum
-
-                elif winners > best_winners:
-                    # print("SWITCHING MATCH :::", best_match, "-->", match)
-                    # print("SWITCHING WINN :::", best_winners, "-->", winners)
-                    best_match = match
-                    best_winners = winners
-                    best_match_combo = combo
-                    best_total_sum = total_sum
-
-                elif best_winners == 0:
-                    # print("SWITCHING MATCH :::", best_match, "-->", match)
-                    # print("SWITCHING WINN :::", best_winners, "-->", winners)
-                    best_match = match
-                    best_winners = winners
-                    best_match_combo = combo
-                    best_total_sum = total_sum
-
-                if match > best_match and winners >= best_winners:
-                    best_match = match
-                    best_winners = winners
-                    best_match_combo = combo
-                    best_total_sum = total_sum
-
-            if match > best_match_with_jkpt and match < 20 and has_jkpt:
-                best_match_with_jkpt = match
-                best_match_with_jkpt_combo = combo
-
-            if match > best_match_witho_jkpt and match < 20 and (not has_jkpt):
-                best_match_witho_jkpt = match
-                best_match_witho_jkpt_combo = combo
-
-            # print("COMBO:::", combo, "INDEX:::", index)
-
-        if best_match == 0:
-            best_match_combo = []
-
-        print(
-            "BEST MATCH ::",
-            best_match,
-            "MATCH ::",
-            match,
-            "COMBO ::",
-            best_match_combo,
-            "TOTAL SUM ::",
-            best_total_sum,
-        )
-
-        prices = SalaryForLifeDraw.filter_banker_winnings(
-            best_match_combo, plays, line_prices, jackpot_amount
-        )
-
-        filterd_winners = SalaryForLifeDraw.filter_banker_winnings(
-            best_match_combo, plays, line_prices, jackpot_amount
-        )
-        total_winning = SalaryForLifeDraw.deep_sum(filterd_winners)
-
-        if total_winning > rtp:
-            best_match_combo = SalaryForLifeDraw.least_occurring_numbers(plays)
-            print("BEST MATCH COMBO ::", best_match_combo)
-            return
-
-        from pprint import pprint
-
-        pprint(prices)
-        # raise SyntaxError
-        return dict(
-            best_match=best_match,
-            best_match_combo=best_match_combo,
-            best_match_with_jkpt=best_match_with_jkpt,
-            best_match_with_jkpt_combo=best_match_with_jkpt_combo,
-            best_match_witho_jkpt=best_match_witho_jkpt,
-            best_match_witho_jkpt_combo=best_match_witho_jkpt_combo,
-            LIMIT_WINING_AMOUNT=LIMIT_WINING_AMOUNT,
-        )
-
-    @staticmethod
-    def least_occurring_numbers(data):
-        all_numbers = list(range(1, 51))
-
-        for item in data:
-            if isinstance(item, tuple) and len(item) == 3:
-                all_numbers.extend(item[1])
-
-        # Count occurrences of each number
-        number_counts = Counter(all_numbers)
-
-        # Return all numbers with their occurrences, sorted by frequency
-        numbers, _ = zip(*sorted(number_counts.items(), key=lambda x: x[1]))
-        combo = numbers[:10]
-        selection = random.sample(combo, k=5)
-
-        return selection
-
-    @staticmethod
-    def deep_sum(data):
-        total_winning_amount = 0
-
-        for item in data:
-            if isinstance(item, list) and len(item) == 3:
-                total_winning_amount += item[2]  # Sum the winning_amount
-
-        return total_winning_amount
-
-    @staticmethod
-    def filter_winnings(combo, plays, prices, jackpot_amount):
-        const_obj = ConstantVariable.objects.all().last()
-        occurences = map(
-            lambda user_play: search_number_occurences(
-                combo, user_play, const_obj.s4l_number_of_match_limit
-            ),
-            plays,
-        )  # CHECK FOR HOW MANY NUMBERS MATCH FOR EVERY COMBINATION IN LIST OF NUMBERS
-
-        play_occurences = zip(
-            occurences, plays
-        )  # Match number of occurences to number of matches found in selected combination
-        over3ocurrences = list(
-            filter(lambda x: x[0], play_occurences)
-        )  # FILTER ALL VALUES THAT ARE NOT 3 AND ABOVE (FILTER WITH FALSE)
-
-        play_occurences_with_amount = map(
-            lambda played: get_potential_winning(played, prices, jackpot_amount),
-            over3ocurrences,
-        )
-        data = list(play_occurences_with_amount)
-
-        return data
-
-    @staticmethod
-    def filter_banker_winnings(combo, plays, prices, jackpot_amount):
-        const_obj = ConstantVariable.objects.all().last()
-        occurences = map(
-            lambda user_play: search_number_occurences(
-                combo, user_play, const_obj.s4l_number_of_match_limit
-            ),
-            plays,
-        )  # CHECK FOR HOW MANY NUMBERS MATCH FOR EVERY COMBINATION IN LIST OF NUMBERS
-
-        play_occurences = zip(
-            occurences, plays
-        )  # Match number of occurences to number of matches found in selected combination
-        over3ocurrences = list(
-            filter(lambda x: x[0], play_occurences)
-        )  # FILTER ALL VALUES THAT ARE NOT 3 AND ABOVE (FILTER WITH FALSE)
-
-        play_occurences_with_amount = map(
-            lambda played: get_banker_potential_winning(played, prices, jackpot_amount),
-            over3ocurrences,
-        )
-        data = list(play_occurences_with_amount)
-
-        return data
-
-
-# import random
-# from itertools import combinations
-
-# plays = [
-#     random.sample(range(1, 50), 5) for _ in range(100)  # simulate 100 player tickets
-# ]
-# rtp = 10000
-# line_prices = [100, 200, 500, 1000]
-# jackpot_amount = 1_000_000
-
-
-# test = SalaryForLifeDraw.draw(plays, rtp, line_prices, jackpot_amount)
-# print(test)
+# class SalaryForLifeDraw:
+#     @staticmethod
+#     def draw(plays, rtp, line_prices, jackpot_amount, disburse_jackpot=False) -> dict:
+#         random_combo = list(itertools.combinations(range(1, 50), 5))
+#         random.shuffle(random_combo)
+#         const_obj = ConstantVariable.objects.all().last()
+#         best_match = 0
+#         best_winners = 0
+#         best_match_combo = []
+
+#         datetime.datetime.now()
+
+#         restrict_or_not = const_obj.restrict_s4l_to_lower_wins
+#         max_win_lim_ratio = const_obj.max_s4l_single_win_to_rtp
+
+#         best_match_with_jkpt = 0
+#         best_match_with_jkpt_combo = []
+
+#         best_match_witho_jkpt = 0
+#         best_match_witho_jkpt_combo = []
+
+#         # print(line_prices)
+
+#         # for combo in plays:
+#         #     print(combo)
+#         # for index, combo in enumerate(random_combo):
+
+#         #     occurences = map(
+#         #         lambda user_play: search_number_occurences(combo, user_play), plays
+#         #     )  # CHECK FOR HOW MANY NUMBERS MATCH FOR EVERY COMBINATION IN LIST OF NUMBERS
+
+#         #     play_occurences = zip(
+#         #         occurences, plays
+#         #     )  # Match number of occurences to number of matches found in selected combination
+#         #     over3ocurrences = list(
+#         #         filter(lambda x: x[0], play_occurences)
+#         #     )  # FILTER ALL VALUES THAT ARE NOT 3 AND ABOVE (FILTER WITH FALSE)
+
+#         #     play_occurences_with_amount = map(
+#         #         lambda played: get_potential_winning(
+#         #             played, line_prices, jackpot_amount
+#         #         ),
+#         #         over3ocurrences,
+#         #     )
+
+#         #     total_sum = 0
+#         #     play_occurences_with_amount = list(play_occurences_with_amount)
+#         #     # CALCULATE THE TOTAL WINNING AMOUNT
+#         #     for index, ocurrence in enumerate(play_occurences_with_amount):
+#         #         total_sum += ocurrence[-1]
+
+#         #     has_jkpt = bool(
+#         #         list(filter(lambda x: x[0] == 5, play_occurences_with_amount))
+#         #     )
+#         #     match = total_sum / rtp * 100
+
+#         #     # print("TOTAL SUM ::", total_sum, "RTP ::", rtp)
+
+#         #     # if match > 95 and match < 105:
+#         #     #     input()
+
+#         #     # if match > best_match and match < 100:
+
+#         #     if match > best_match and match < 100:
+#         #         best_match = match
+#         #         best_match_combo = combo
+#         #         best_total_sum = total_sum
+#         #     if match > best_match_with_jkpt and match < 100 and has_jkpt:
+#         #         best_match_with_jkpt = match
+#         #         best_match_with_jkpt_combo = combo
+#         #     if match > best_match_witho_jkpt and match < 100 and (not has_jkpt):
+#         #         best_match_witho_jkpt = match
+#         #         best_match_witho_jkpt_combo = combo
+
+#         for index, combo in enumerate(random_combo):
+#             occurences = map(
+#                 lambda user_play: search_number_occurences(
+#                     combo, user_play, const_obj.s4l_number_of_match_limit
+#                 ),
+#                 plays,
+#             )  # CHECK FOR HOW MANY NUMBERS MATCH FOR EVERY COMBINATION IN LIST OF NUMBERS
+
+#             play_occurences = zip(
+#                 occurences, plays
+#             )  # Match number of occurences to number of matches found in selected combination
+#             over3ocurrences = list(
+#                 filter(lambda x: x[0], play_occurences)
+#             )  # FILTER ALL VALUES THAT ARE NOT 3 AND ABOVE (FILTER WITH FALSE)
+
+#             # NOW FILTER HAS BEEN ALTERED TO ALLOW 2 AND ABOVE WIN COMBOs
+
+#             play_occurences_with_amount = map(
+#                 lambda played: get_potential_winning(
+#                     played, line_prices, jackpot_amount
+#                 ),
+#                 over3ocurrences,
+#             )
+
+#             total_sum = 0
+#             play_occurences_with_amount = list(play_occurences_with_amount)
+#             # CALCULATE THE TOTAL WINNING AMOUNT
+#             for index, ocurrence in enumerate(play_occurences_with_amount):
+#                 total_sum += ocurrence[-1]
+
+#                 if rtp / ocurrence[-1] < max_win_lim_ratio:
+#                     total_sum = 99999999999
+#                     break
+
+#             if total_sum >= 99999999999:
+#                 continue
+
+#             has_jkpt = bool(
+#                 list(filter(lambda x: x[0] == 5, play_occurences_with_amount))
+#             )
+#             match = total_sum / rtp * 100
+#             winners = len(over3ocurrences)
+
+#             # if match > 10 and match < 100 and len(over3ocurrences) >= 3: print(match, "-->", winners, "-->", int(match*winners))
+
+#             # print("TOTAL SUM ::", total_sum, "RTP ::", rtp)
+
+#             # if match > 95 and match < 105:
+#             #     input()
+
+#             # if match > best_match and match < 100:
+
+#             if (winners >= best_winners or match > best_match) and match < 100:
+#                 if winners == best_winners and match < best_match and restrict_or_not:
+#                     # print("SWITCHING MATCH :::", best_match, "-->", match)
+#                     # print("SWITCHING WINN :::", best_winners, "-->", winners)
+#                     best_match = match
+#                     best_winners = winners
+#                     best_match_combo = combo
+
+#                 elif winners > best_winners:
+#                     # print("SWITCHING MATCH :::", best_match, "-->", match)
+#                     # print("SWITCHING WINN :::", best_winners, "-->", winners)
+#                     best_match = match
+#                     best_winners = winners
+#                     best_match_combo = combo
+
+#                 elif best_winners == 0:
+#                     # print("SWITCHING MATCH :::", best_match, "-->", match)
+#                     # print("SWITCHING WINN :::", best_winners, "-->", winners)
+#                     best_match = match
+#                     best_winners = winners
+#                     best_match_combo = combo
+
+#                 if match > best_match and winners >= best_winners:
+#                     best_match = match
+#                     best_winners = winners
+#                     best_match_combo = combo
+
+#             # if match < 20:win_n_matches.append((int(best_match), best_winners))
+
+#             if match > best_match_with_jkpt and match < 20 and has_jkpt:
+#                 best_match_with_jkpt = match
+#                 best_match_with_jkpt_combo = combo
+#             if match > best_match_witho_jkpt and match < 20 and (not has_jkpt):
+#                 best_match_witho_jkpt = match
+#                 best_match_witho_jkpt_combo = combo
+
+#         #     with open("s4ldraw.txt", "a") as file:
+#         #         file.write(f"TIME :: {now.strftime('%d-%m %H:%M')}, BEST MATCH ::{best_match}, MATCH ::{match}, COMBO ::{best_match_combo} , TOTAL SUM ::{best_total_sum}\n")
+
+#         # print("BEST MATCH ::", best_match, "MATCH ::", match, "COMBO ::", best_match_combo , "TOTAL SUM ::", best_total_sum)
+
+#         # prices = SalaryForLifeDraw.filter_winnings(best_match_combo, plays, line_prices, jackpot_amount)
+#         # from pprint import pprint
+
+#         # pprint(prices)
+
+#         return dict(
+#             best_match=best_match,
+#             best_match_combo=best_match_combo,
+#             best_match_with_jkpt=best_match_with_jkpt,
+#             best_match_with_jkpt_combo=best_match_with_jkpt_combo,
+#             best_match_witho_jkpt=best_match_witho_jkpt,
+#             best_match_witho_jkpt_combo=best_match_witho_jkpt_combo,
+#         )
+
+#     @staticmethod
+#     def banker_decisioning(
+#         plays, rtp, line_prices, jackpot_amount, disburse_jackpot=False
+#     ) -> dict:
+#         # print(":::::::::::NEW-TP:::", rtp)
+#         print(plays)
+#         random_combo = list(itertools.combinations(range(1, 49), 5))
+#         random.shuffle(random_combo)
+#         const_obj = ConstantVariable.objects.all().last()
+#         best_match = 0
+#         best_winners = 0
+#         best_match_combo = []
+
+#         LIMIT_WINING_AMOUNT = const_obj.limit_wining_amount
+#         const_obj.limit_wining_amount = not const_obj.limit_wining_amount
+#         const_obj.save()
+#         # print(LIMIT_WINING_AMOUNT , "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
+#         restrict_or_not = const_obj.restrict_s4l_to_lower_wins
+#         max_win_lim_ratio = const_obj.max_s4l_single_win_to_rtp
+
+#         best_match_with_jkpt = 0
+#         best_match_with_jkpt_combo = []
+
+#         best_match_witho_jkpt = 0
+#         best_match_witho_jkpt_combo = []
+
+#         best_total_sum = 0
+#         for combo in plays:
+#             print(combo)
+
+#         for index, combo in enumerate(random_combo):
+#             occurences = map(
+#                 lambda user_play: search_number_occurences(
+#                     combo, user_play, const_obj.s4l_number_of_match_limit
+#                 ),
+#                 plays,
+#             )  # CHECK FOR HOW MANY NUMBERS MATCH FOR EVERY COMBINATION IN LIST OF NUMBERS
+
+#             play_occurences = zip(
+#                 occurences, plays
+#             )  # Match number of occurences to number of matches found in selected combination
+#             over3ocurrences = list(
+#                 filter(lambda x: x[0], play_occurences)
+#             )  # FILTER ALL VALUES THAT ARE NOT 3 AND ABOVE (FILTER WITH FALSE)
+
+#             # NOW FILTER HAS BEEN ALTERED TO ALLOW 2 AND ABOVE WIN COMBOs
+
+#             play_occurences_with_amount = map(
+#                 lambda played: get_banker_potential_winning(
+#                     played, line_prices, jackpot_amount, ticket_rtp=played[1][2]
+#                 ),
+#                 over3ocurrences,
+#             )
+
+#             # for ticket in play_occurences_with_amount:
+#             #     print(ticket)
+
+#             total_sum = 0
+#             play_occurences_with_amount = list(play_occurences_with_amount)
+#             # CALCULATE THE TOTAL WINNING AMOUNT
+#             for index, ocurrence in enumerate(play_occurences_with_amount):
+#                 if LIMIT_WINING_AMOUNT:
+#                     break
+
+#                 total_sum += ocurrence[-1]
+
+#                 if rtp / ocurrence[-1] < max_win_lim_ratio:
+#                     total_sum = 99999999999
+#                     break
+
+#             if total_sum >= 99999999999:
+#                 continue
+
+#             has_jkpt = bool(
+#                 list(filter(lambda x: x[0] == 5, play_occurences_with_amount))
+#             )
+#             match = total_sum / rtp * 100
+#             winners = len(over3ocurrences)
+
+#             if (winners >= best_winners or match > best_match) and match < 100:
+#                 # print("MATCH ::#:: ", match)
+
+#                 if winners == best_winners and match < best_match and restrict_or_not:
+#                     # print("SWITCHING MATCH :::", best_match, "-->", match)
+#                     # print("SWITCHING WINN :::", best_winners, "-->", winners)
+#                     best_match = match
+#                     best_winners = winners
+#                     best_match_combo = combo
+#                     best_total_sum = total_sum
+
+#                 elif winners > best_winners:
+#                     # print("SWITCHING MATCH :::", best_match, "-->", match)
+#                     # print("SWITCHING WINN :::", best_winners, "-->", winners)
+#                     best_match = match
+#                     best_winners = winners
+#                     best_match_combo = combo
+#                     best_total_sum = total_sum
+
+#                 elif best_winners == 0:
+#                     # print("SWITCHING MATCH :::", best_match, "-->", match)
+#                     # print("SWITCHING WINN :::", best_winners, "-->", winners)
+#                     best_match = match
+#                     best_winners = winners
+#                     best_match_combo = combo
+#                     best_total_sum = total_sum
+
+#                 if match > best_match and winners >= best_winners:
+#                     best_match = match
+#                     best_winners = winners
+#                     best_match_combo = combo
+#                     best_total_sum = total_sum
+
+#             if match > best_match_with_jkpt and match < 20 and has_jkpt:
+#                 best_match_with_jkpt = match
+#                 best_match_with_jkpt_combo = combo
+
+#             if match > best_match_witho_jkpt and match < 20 and (not has_jkpt):
+#                 best_match_witho_jkpt = match
+#                 best_match_witho_jkpt_combo = combo
+
+#             # print("COMBO:::", combo, "INDEX:::", index)
+
+#         if best_match == 0:
+#             best_match_combo = []
+
+#         print(
+#             "BEST MATCH ::",
+#             best_match,
+#             "MATCH ::",
+#             match,
+#             "COMBO ::",
+#             best_match_combo,
+#             "TOTAL SUM ::",
+#             best_total_sum,
+#         )
+
+#         prices = SalaryForLifeDraw.filter_banker_winnings(
+#             best_match_combo, plays, line_prices, jackpot_amount
+#         )
+
+#         filterd_winners = SalaryForLifeDraw.filter_banker_winnings(
+#             best_match_combo, plays, line_prices, jackpot_amount
+#         )
+#         total_winning = SalaryForLifeDraw.deep_sum(filterd_winners)
+
+#         if total_winning > rtp:
+#             best_match_combo = SalaryForLifeDraw.least_occurring_numbers(plays)
+#             print("BEST MATCH COMBO ::", best_match_combo)
+#             return
+
+#         from pprint import pprint
+
+#         pprint(prices)
+#         # raise SyntaxError
+#         return dict(
+#             best_match=best_match,
+#             best_match_combo=best_match_combo,
+#             best_match_with_jkpt=best_match_with_jkpt,
+#             best_match_with_jkpt_combo=best_match_with_jkpt_combo,
+#             best_match_witho_jkpt=best_match_witho_jkpt,
+#             best_match_witho_jkpt_combo=best_match_witho_jkpt_combo,
+#             LIMIT_WINING_AMOUNT=LIMIT_WINING_AMOUNT,
+#         )
+
+#     @staticmethod
+#     def least_occurring_numbers(data):
+#         all_numbers = list(range(1, 51))
+
+#         for item in data:
+#             if isinstance(item, tuple) and len(item) == 3:
+#                 all_numbers.extend(item[1])
+
+#         # Count occurrences of each number
+#         number_counts = Counter(all_numbers)
+
+#         # Return all numbers with their occurrences, sorted by frequency
+#         numbers, _ = zip(*sorted(number_counts.items(), key=lambda x: x[1]))
+#         combo = numbers[:10]
+#         selection = random.sample(combo, k=5)
+
+#         return selection
+
+#     @staticmethod
+#     def deep_sum(data):
+#         total_winning_amount = 0
+
+#         for item in data:
+#             if isinstance(item, list) and len(item) == 3:
+#                 total_winning_amount += item[2]  # Sum the winning_amount
+
+#         return total_winning_amount
+
+#     @staticmethod
+#     def filter_winnings(combo, plays, prices, jackpot_amount):
+#         const_obj = ConstantVariable.objects.all().last()
+#         occurences = map(
+#             lambda user_play: search_number_occurences(
+#                 combo, user_play, const_obj.s4l_number_of_match_limit
+#             ),
+#             plays,
+#         )  # CHECK FOR HOW MANY NUMBERS MATCH FOR EVERY COMBINATION IN LIST OF NUMBERS
+
+#         play_occurences = zip(
+#             occurences, plays
+#         )  # Match number of occurences to number of matches found in selected combination
+#         over3ocurrences = list(
+#             filter(lambda x: x[0], play_occurences)
+#         )  # FILTER ALL VALUES THAT ARE NOT 3 AND ABOVE (FILTER WITH FALSE)
+
+#         play_occurences_with_amount = map(
+#             lambda played: get_potential_winning(played, prices, jackpot_amount),
+#             over3ocurrences,
+#         )
+#         data = list(play_occurences_with_amount)
+
+#         return data
+
+#     @staticmethod
+#     def filter_banker_winnings(combo, plays, prices, jackpot_amount):
+#         const_obj = ConstantVariable.objects.all().last()
+#         occurences = map(
+#             lambda user_play: search_number_occurences(
+#                 combo, user_play, const_obj.s4l_number_of_match_limit
+#             ),
+#             plays,
+#         )  # CHECK FOR HOW MANY NUMBERS MATCH FOR EVERY COMBINATION IN LIST OF NUMBERS
+
+#         play_occurences = zip(
+#             occurences, plays
+#         )  # Match number of occurences to number of matches found in selected combination
+#         over3ocurrences = list(
+#             filter(lambda x: x[0], play_occurences)
+#         )  # FILTER ALL VALUES THAT ARE NOT 3 AND ABOVE (FILTER WITH FALSE)
+
+#         play_occurences_with_amount = map(
+#             lambda played: get_banker_potential_winning(played, prices, jackpot_amount),
+#             over3ocurrences,
+#         )
+#         data = list(play_occurences_with_amount)
+
+#         return data
+
+
+# # import random
+# # from itertools import combinations
+
+# # plays = [
+# #     random.sample(range(1, 50), 5) for _ in range(100)  # simulate 100 player tickets
+# # ]
+# # rtp = 10000
+# # line_prices = [100, 200, 500, 1000]
+# # jackpot_amount = 1_000_000
+
+
+# # test = SalaryForLifeDraw.draw(plays, rtp, line_prices, jackpot_amount)
+# # print(test)
