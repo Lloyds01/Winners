@@ -1,7 +1,96 @@
+import uuid
 from django.db import models
+from datetime import datetime, time, timedelta
+from django.contrib.postgres.fields import ArrayField
+from django.db.models.functions import Now, TruncDate
 
-# Create your models here.
 
+SERVICE_TYPE = [
+    ("AWOOF", "AWOOF"),
+    ("INSURANCE", "INSURANCE"),
+]
+
+class UserProfile(models.Model):
+    GENDER_CHOICES = [
+        ("MALE", "MALE"),
+        ("FEMALE", "FEMALE"),
+        ("OTHER", "OTHER"),
+    ]
+
+    CHANNEL = [
+        ("USSD", "USSD"),
+        ("WEB", "WEB"),
+        ("USSD/WEB", "USSD/WEB"),
+        ("WEB/USSD", "WEB/USSD"),
+        ("MOBILE", "MOBILE"),
+        ("POS", "POS"),
+    ]
+
+    NETWORK_PROVIDER = (
+        ("MTN", "MTN"),
+        ("GLO", "GLO"),
+    )
+    phone_number = models.CharField(max_length=100, unique=True)
+    email = models.EmailField(null=True, blank=True)
+    first_name = models.CharField(max_length=100, null=True, blank=True)
+    last_name = models.CharField(max_length=100, null=True, blank=True)
+    middle_name = models.CharField(max_length=100, null=True, blank=True)
+    account_num = models.CharField(max_length=150, null=True, blank=True)
+    account_name = models.CharField(max_length=150, null=True, blank=True)
+    bank_name = models.CharField(max_length=150, null=True, blank=True)
+    bank_code = models.CharField(max_length=150, null=True, blank=True)
+    date_added = models.DateTimeField(auto_now_add=True)
+    last_updated = models.DateTimeField(auto_now=True)
+    loandisk_player_id = models.CharField(max_length=150, null=True, blank=True)
+    on_loandisk = models.BooleanField(default=False)
+    ministry = models.CharField(max_length=300, null=True, blank=True)
+    auth_code = models.CharField(max_length=100, null=True, blank=True)
+    bvn_number = models.CharField(max_length=100, null=True, blank=True)
+    gender = models.CharField(max_length=200, choices=GENDER_CHOICES, default="OTHER")
+    # profile_img = CloudinaryField("image", null=True, blank=True)
+    channel = models.CharField(max_length=200, choices=CHANNEL, default="USSD")
+    pin = models.CharField(max_length=125, null=True, blank=True)
+    has_pin = models.BooleanField(default=False)
+    has_web_virtual_account = models.BooleanField(default=False)
+    has_sudo_phone_number = models.BooleanField(default=False)
+    has_sudo_email = models.BooleanField(default=False)
+    suspended = models.BooleanField(default=False)
+    avatar = models.URLField(max_length=2300, null=True, blank=True)
+    debt_amount = models.FloatField(default=0.00)
+    recovered_debt = models.FloatField(default=0.00)
+    from_telco = models.BooleanField(default=False)
+    verification_code = models.CharField(max_length=250, editable=False, null=True, blank=True)
+    email_is_verified = models.BooleanField(default=False)
+    preverified_email = models.CharField(max_length=125, null=True, blank=True)
+    network_provider = models.CharField(max_length=125, null=True, blank=True, choices=NETWORK_PROVIDER)
+
+    def __str__(self) -> str:
+        return str(self.phone_number)
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            if self.phone_number:
+                self.phone_number = LotteryModel.format_number_from_back_add_234(self.phone_number)
+                if UserProfile.objects.filter(phone_number=self.phone_number).exists():
+                    pass
+                else:
+                    return super(UserProfile, self).save(*args, **kwargs)
+
+class LotteryModel(models.Model):
+    phone = models.CharField(max_length=300)
+
+
+    @staticmethod
+    def format_number_from_back_add_234(phone) -> str:
+        if phone is None:
+            return None
+
+        formatted_num = phone[-10:]
+        if formatted_num[0] == "0":
+            return None
+        else:
+            return "234" + formatted_num
+    pass
 
 # class ConstantVariable4(models.Model):
 #     SHARING = [
@@ -478,3 +567,619 @@ from django.db import models
 
 #     def save(self):
 #         return None
+
+
+class LotteryGlobalJackPot(models.Model):
+    """
+    This model is used to store the salary for life jackpot amount
+    """
+
+    LOTTERY_TYPE = [
+        ("SALARY_FOR_LIFE", "SALARY_FOR_LIFE"),
+        ("INSTANT_CASHOUT", "INSTANT_CASHOUT"),
+    ]
+
+    threshold = models.FloatField(default=0.0)
+    contributed_amount = models.FloatField(default=0.0)
+    lottery_type = models.CharField(max_length=250, choices=LOTTERY_TYPE, default="SALARY_FOR_LIFE")
+    is_active = models.BooleanField(default=True)
+    is_drawn = models.BooleanField(default=False)
+    jackpot_id = models.CharField(max_length=250, default=uuid.uuid4, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.lottery_type}-{self.jackpot_id}"
+
+    class Meta:
+        verbose_name = "MEGACSH FOR LIFE JACKPOT"
+        verbose_name_plural = "MEGACSH FOR LIFE JACKPOT"
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            # check if jackpot is already active
+
+            if LotteryGlobalJackPot.objects.filter(jackpot_id=self.jackpot_id).exists():
+                self.jackpot_id = uuid.uuid4()
+        return super(Jackpot, self).save(*args, **kwargs)
+
+    @classmethod
+    def get_jackpot(cls):
+        """
+        This method is used to get the jackpot amount
+        """
+        jackpot = cls.objects.filter(is_active=True).last()
+
+        try:
+            percentage = round((jackpot.contributed_amount / jackpot.threshold) * 100)
+        except ZeroDivisionError:
+            percentage = 0
+
+        if jackpot:
+            return {
+                "threshold": jackpot.threshold,
+                "contributed_amount": jackpot.contributed_amount,
+                "percentage": percentage,
+            }
+        return {}
+
+    @classmethod
+    def get_jackpot_instance(cls):
+        """
+        This method is used to get the jackpot amount
+        """
+        jackpot = cls.objects.filter(is_active=True).last()
+
+        if jackpot:
+            return jackpot
+        else:
+            jackpot = cls.objects.create(threshold=1000000, contributed_amount=0.0)
+            return jackpot
+
+    @classmethod
+    def update_jackpot(cls, amount):
+        """
+        This method is used to update the jackpot amount
+        """
+        jackpot = cls.objects.filter(is_active=True).last()
+        if jackpot:
+            jackpot.alltime_contributed_amount += amount
+            jackpot.contributed_amount = amount
+            jackpot.save()
+        else:
+            pass
+
+    @classmethod
+    def add_to_jackpot(cls, amount, lottery_type):
+        """
+        This method is used to add to the jackpot amount
+        """
+        jackpot = cls.objects.filter(is_active=True, lottery_type=lottery_type).last()
+        if jackpot:
+            jackpot.alltime_contributed_amount += amount
+            jackpot.contributed_amount += amount
+            jackpot.save()
+        else:
+            cls.objects.create(
+                threshold=1000000,
+                contributed_amount=float(amount),
+                lottery_type=lottery_type,
+            )
+
+    def save(self, *args, **kwargs):  # noqa
+        if not self.pk:
+            # check if there is an active jackpot
+            jackpot = self.__class__.objects.filter(is_active=True).last()
+            if jackpot:
+                raise ValidationError("There is an active jackpot")
+
+        return super(LotteryGlobalJackPot, self).save(*args, **kwargs)
+
+
+def generate_batch_uuid_func():
+    formatted_month = datetime.now().strftime("%b%Y")  # Make sure to import datetime
+    return f"{formatted_month}-{uuid.uuid4()}"
+
+class LotteryBatch(models.Model):
+    # super_winners
+    # total_unique_paid_players_in_pool
+
+    formatted_month = datetime.strftime(datetime.now(), "%b")
+
+    LOTTERY_TYPE = [
+        ("SALARY_FOR_LIFE", "SALARY_FOR_LIFE"),
+        ("INSTANT_CASHOUT", "INSTANT_CASHOUT"),
+        ("WYSE_CASH", "WYSE_CASH"),
+        ("WHYSE_LOAN", "WHYSE_LOAN"),
+        ("QUIKA", "QUIKA"),
+        ("BANKER", "BANKER"),
+    ]
+
+    batch_uuid = models.CharField(max_length=150, default=generate_batch_uuid_func)
+    total_players_in_pool = models.PositiveIntegerField(null=True, blank=True)
+    total_unique_players_in_pool = models.PositiveIntegerField(null=True, blank=True)
+    global_jackpot = models.ForeignKey("LotteryGlobalJackPot", on_delete=models.CASCADE, null=True, blank=True)
+    total_unique_paid_playyers_in_pool = models.PositiveIntegerField(null=True, blank=True)
+    total_accumulated_unpaid = models.FloatField(null=True, blank=True)
+    total_accumulated_paid = models.FloatField(null=True, blank=True)
+    total_accumulated_all = models.FloatField(null=True, blank=True)
+    total_jackpot_amount_10 = models.FloatField(null=True, blank=True)
+    total_jackpot_amount_50 = models.FloatField(null=True, blank=True)
+    total_jackpot_amount_250 = models.FloatField(null=True, blank=True)
+    total_jackpot_amount_500 = models.FloatField(null=True, blank=True)
+    total_jackpot_amount_1000 = models.FloatField(null=True, blank=True)
+    total_amount_won = models.FloatField(null=True, blank=True)
+    RTO = models.FloatField(default=30)
+    RTP = models.FloatField(null=True, blank=True)
+    total_revenue = models.FloatField(null=True, blank=True)
+    super_winers = models.JSONField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    is_pos_active = models.BooleanField(default=False)
+    created_date = models.DateTimeField(auto_now_add=True)
+    last_updated = models.DateTimeField(auto_now=True)
+    draw_date = models.DateTimeField(blank=True, null=True)
+    batch_start = models.DateTimeField(null=True, blank=True)
+    batch_end = models.DateTimeField(null=True, blank=True)
+    lottery_type = models.CharField(max_length=100, choices=LOTTERY_TYPE, default="WHYSE_LOAN")
+    lottery_winner_ticket = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Serialization of the winner ticket/selection of numbers",
+    )
+    lottery_winner_ticket_number = models.TextField(blank=True, null=True, help_text="The winning ticket number")
+    instant_cashout_player_threshold = models.PositiveIntegerField(default=0, editable=False)
+    is_pos_batch = models.BooleanField(default=False)
+    list_of_ticket_numbers = ArrayField(models.IntegerField(), blank=True, null=True)
+    manually_filtered_winnings = models.BooleanField(default=False)
+    pending_telco_draw = models.BooleanField(default=False)
+
+    @staticmethod
+    def batch_paid_amount(batch):
+        return list(
+            PaymentTransaction.objects.filter(Q(has_paid=True) & Q(lottery_batch=batch))
+            .aggregate(Sum("amount"))
+            .values()
+        )[0]
+
+    @staticmethod
+    def batch_paid_amount_today(batch):
+        # start_date = datetime.today()
+        # end_date
+        # return list(
+        #     PaymentTransaction.objects.filter(
+        #         Q(has_paid=True)
+        #         & Q(lottery_batch__id=batch.id)
+        #         & Q(date_paid__date=datetime.today().date())
+        #     )
+        #     .aggregate(Sum("amount"))
+        #     .values()
+        # )[0]W
+
+        if LotteryModel.objects.filter(batch__id=batch.id).exists():
+            return (
+                LotteryModel.objects.filter(batch__id=batch.id, date__date=timezone.now().date(), paid=True)
+                .aggregate(Sum("amount_paid"))
+                .get("amount_paid__sum")
+            )
+
+        elif LottoTicket.objects.filter(batch__id=batch.id).exists():
+            return (
+                LottoTicket.objects.filter(batch__id=batch.id, date__date=timezone.now().date(), paid=True)
+                .aggregate(Sum("amount_paid"))
+                .get("amount_paid__sum")
+            )
+
+        else:
+            0
+
+    def __str__(self):
+        return str(self.batch_uuid)
+
+    class Meta:
+        verbose_name = "LOTTERY BATCH"
+        verbose_name_plural = "LOTTERY BATCHES"
+
+    @classmethod
+    def get_current_batch(cls):
+        return cls.objects.filter(is_active=True).last()
+
+    def instant_cash_draw(self):
+        # if self.lottery_type == "INSTANT_CASHOUT":
+        #     self.lottery_winner_ticket = serialize_ticket([1,3,45,6,7,8,8])
+        #     self.save()
+
+        pass
+
+    def clean(self):
+        if self.lottery_type == "SALARY_FOR_LIFE" and self.global_jackpot is None:
+            raise ValidationError("Global jackpot is required for salary for life")
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            if self.lottery_type == "INSTANT_CASHOUT":
+                # select random nth player for instant cashout draw
+                number_range = ConstantVariable.get_constant_variable().get("instant_cashout_win_range_number")
+                random_number = random.randrange(int(number_range.split("-")[0]), int(number_range.split("-")[1]), 10)
+
+                self.instant_cashout_player_threshold = int(random_number)
+
+                redis_storage = RedisStorage(f"{self.batch_uuid}-instant_cashout-nth_player")
+                redis_storage.set_data(random_number)
+
+                # save active bacth to redis
+                redis_storage = RedisStorage("instant_cashout_active_batch")
+                redis_storage.set_data(self.batch_uuid)
+
+            if self.lottery_type == "SALARY_FOR_LIFE":
+                if self.list_of_ticket_numbers is None or self.list_of_ticket_numbers == []:
+                    self.list_of_ticket_numbers = LotteryBatch.salary_for_life_list_of_ticket_numbers()
+
+            # --------------------------------------------  raise exception if a lottery batch is already active -------------------------------------------- #
+            if self.is_active is True:
+                if self.is_pos_batch is False:
+                    if LotteryBatch.objects.filter(
+                        lottery_type=self.lottery_type,
+                        is_active=True,
+                        is_pos_batch=False,
+                    ).exists():
+                        return ValidationError("A lottery batch is already active")
+
+                # save lottery batch rto and rtp in redis
+                redis_storage = RedisStorage(f"{self.lottery_type}-rto")
+                redis_storage.set_data(self.RTO)
+
+            # --------------------------------------------  raise exception if a lottery batch is already active -------------------------------------------- #
+
+            # check if lottery batch uuid already exists
+            formatted_month = datetime.strftime(datetime.now(), "%b")
+            if LotteryBatch.objects.filter(batch_uuid=self.batch_uuid).exists():
+                self.batch_uuid = f"{formatted_month}-{str(uuid.uuid4())}"
+
+        return super(LotteryBatch, self).save(*args, **kwargs)
+
+    @classmethod
+    def create_batch(cls, **kwargs):
+        global_jackpot = LotteryGlobalJackPot.get_jackpot_instance()
+
+        instance = cls()
+        for key, value in kwargs.items():
+            if hasattr(instance, key):
+                setattr(instance, key, value)
+
+        instance.global_jackpot = global_jackpot
+        instance.save()
+
+        return instance
+
+    @classmethod
+    def salary_for_life_list_of_ticket_numbers(cls):
+        # random number from 1 to 50
+        random_list_50_numbers = random.sample(range(1, 51), 50)
+
+        # random single number from 1 to 39
+        random_single_number = random.randint(1, 38)
+
+        slicer_pointer = random_single_number + 10
+
+        sliced_random_number_list = random_list_50_numbers[random_single_number:slicer_pointer]
+
+        poped_list_from_random_list_50_numbers = (
+            random_list_50_numbers[0:random_single_number] + random_list_50_numbers[slicer_pointer:-1]
+        )
+
+        num_list_1 = poped_list_from_random_list_50_numbers * 100
+        num_list_2 = sliced_random_number_list * 2
+
+        return num_list_1 + num_list_2
+
+
+
+class LottoTicket(models.Model):
+    NETWORK_PROVIDER = (
+        ("MTN", "MTN"),
+        ("GLO", "GLO"),
+    )
+
+    TELCO_CHANNEL = [
+        ("BROADBASE", "BROADBASE"),
+        ("YELLOW_DOT_AFRICA", "YELLOW_DOT_AFRICA"),
+    ]
+
+    LOTTO_CHANNEL = [
+        ("USSD", "USSD"),
+        ("USSD_WEB", "USSD_WEB"),
+        ("WEB", "WEB"),
+        ("MOBILE", "MOBILE"),
+        ("POS_AGENT", "POS_AGENT"),
+        ("SYSTEM_BONUS", "SYSTEM_BONUS"),
+    ]
+
+    LOTTO_TYPE = [
+        ("SALARY_FOR_LIFE", "SALARY_FOR_LIFE"),
+        ("INSTANT_CASHOUT", "INSTANT_CASHOUT"),
+        ("QUIKA", "QUIKA"),  # new game
+        ("VIRTUAL_SOCCER", "VIRTUAL_SOCCER"),
+        ("BANKER", "BANKER"),
+    ]
+
+    LOTTO_SOURCE = [
+        ("NORMAL", "NORMAL"),
+        ("BONUS", "BONUS"),
+    ]
+
+    GAME_TYPE = [
+        ("AWOOF", "AWOOF"),
+        ("NORMAL", "NORMAL"),
+    ]
+
+    DRAWN_FOR_CHOICES = [
+        ("GLOBAL", "GLOBAL"),
+        ("LOCAL", "LOCAL"),
+    ]
+
+    user_profile = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
+    # agent_profile = models.ForeignKey(Agent, on_delete=models.CASCADE, null=True, blank=True)
+    batch = models.ForeignKey(LotteryBatch, on_delete=models.CASCADE, null=True, blank=True)
+    phone = models.CharField(max_length=300)
+    stake_amount = models.FloatField(default=0.00)
+    potential_winning = models.FloatField(default=0.00)
+    expected_amount = models.FloatField(default=0.00)
+    amount_paid = models.FloatField(default=0.00, db_index=True)
+    illusion = models.FloatField(default=0.00)
+    rto = models.FloatField(default=0.00)
+    rtp = models.FloatField(default=0.00)
+    rtp_per = models.FloatField(default=0.00)
+    effective_rtp = models.FloatField(default=0.00)
+    commission_per = models.FloatField(default=0.00)
+    commission_value = models.FloatField(default=0.00)
+    salary_for_life_jackpot_per = models.FloatField(default=0.00)
+    salary_for_life_jackpot_amount = models.FloatField(default=0.00)
+    win_commission_per = models.FloatField(default=0.00)
+    win_commission_value = models.FloatField(default=0.00)
+    ussd_telco_commission = models.FloatField(default=0.00)
+    ussd_telco_commission_value = models.FloatField(default=0.00)
+    ussd_telco_aggregator_commission = models.FloatField(default=0.00)
+    ussd_telco_aggregator_commission_value = models.FloatField(default=0.00)
+    paid = models.BooleanField(default=False, db_index=True)
+    date = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    number_of_ticket = models.IntegerField(default=0, db_index=True)
+    channel = models.CharField(max_length=150, choices=LOTTO_CHANNEL, default="POS_AGENT", db_index=True)
+    game_play_id = models.CharField(max_length=150, null=True, blank=True, db_index=True)
+    unique_game_play_id = models.CharField(max_length=150, null=True, blank=True)
+
+    awoof_game_play_id = models.CharField(max_length=150, null=True, blank=True)
+    lottery_type = models.CharField(max_length=150, choices=LOTTO_TYPE, default="SALARY_FOR_LIFE", db_index=True)
+    lottery_source = models.CharField(max_length=150, choices=LOTTO_SOURCE, default="NORMAL", db_index=True)
+    game_type = models.CharField(max_length=150, choices=GAME_TYPE, default="NORMAL", db_index=True)
+    service_type = models.CharField(
+        max_length=150,
+        choices=SERVICE_TYPE,
+        default="AWOOF",
+        db_index=True,
+        help_text="the type of service played, Awoof or Insurance",
+    )
+    has_interest = models.BooleanField(default=True)
+    ticket = models.CharField(
+        max_length=200,
+        help_text="Serialization of the ticket/selection of numbers made by the player",
+    )
+    system_generated_num = models.CharField(max_length=300, null=True, blank=True)
+    win_combo = models.CharField(
+        max_length=200,
+        help_text="Actual complete winning number for batch",
+        null=True,
+        blank=True,
+    )
+    is_agent = models.BooleanField(default=False)
+    s4l_drawn = models.BooleanField(default=False)
+    instant_cashout_drawn = models.BooleanField(default=False)
+    pos_instant_cashout_drawn = models.BooleanField(default=False)
+    icash_counted = models.BooleanField(default=False)
+    icash_2_counted = models.BooleanField(default=False)
+    icash_local_counted = models.BooleanField(default=False)
+    is_duplicate = models.BooleanField(default=False)
+    game_id_treated = models.BooleanField(
+        default=False,
+        help_text="This tracks if or not a game id has been treated or not, because instant cash treats individual tickets seperately, but the paid amounts are not lumped, but have to be infered by a multiplication by the game ID.",
+    )
+    pin = models.CharField(
+        max_length=150,
+        null=True,
+        blank=True,
+        help_text="Pin use for cashout if the lottery is played from POS_AGENT and "
+        "the player didn't provide his phone number. This's not the same as the pin used for retail ticket",
+    )
+    identity_id = models.CharField(
+        max_length=500,
+        null=True,
+        blank=True,
+        help_text="This is basically created for transactional purpose",
+    )
+    played_via_telco_channel = models.BooleanField(default=False)
+    telco_channel = models.CharField(
+        max_length=150,
+        choices=TELCO_CHANNEL,
+        default="BROADBASE",
+        help_text="This is the channel through which the ticket was played, either via telco or not",
+    )
+    is_new_quika_game = models.BooleanField(default=False)
+    telco_network = models.CharField(
+        max_length=150,
+        choices=NETWORK_PROVIDER,
+        blank=True,
+        null=True,
+    )
+    drawn_for = models.CharField(max_length=25, choices=DRAWN_FOR_CHOICES, default="GLOBAL")
+    seeder_status = models.CharField(
+        max_length=100,
+        choices=(("COMPLETE", "COMPLETE"), ("PROCESSING", "PROCESSING"), ("PENDING", "PENDING")),
+        default="PENDING",
+        help_text="Current status of the seeder for this ticket.",
+    )
+    content_delivery_sms_sent = models.BooleanField(default=False)
+    product_id = models.CharField(max_length=150, null=True, blank=True)
+
+    def __str__(self):
+        return str(self.id)
+
+    # def __init__(self, *args, **kwargs):
+    #     super(LottoTicket, self).__init__(*args, **kwargs)
+    #     self._original_paid = self.paid
+    #     self._original_amount_paid = self.amount_paid
+
+    class Meta:
+        verbose_name = "MEGACASH & STEADYWIN TICKET"
+        verbose_name_plural = "MEGACASH & STEADYWIN TICKETS"
+        indexes = [
+            models.Index(fields=["phone", "paid", "channel"]),
+            models.Index(fields=["game_play_id"]),
+            models.Index(fields=["paid"]),
+            models.Index(fields=["channel"]),
+            models.Index(fields=["phone"]),
+            models.Index(fields=["lottery_type"]),
+            models.Index(fields=["seeder_status"]),
+            models.Index(TruncDate("date"), "date", name="date_date_idx"),
+        ]
+
+    def save(self, *args, **kwargs):
+        """
+        Override the default save method for the LottoTicket model to handle various business logic.
+
+        This method performs several operations:
+        1. Ensures batch records are saved
+        2. Handles agent-related operations
+        3. Processes financial calculations (commissions, RTO, RTP, etc.)
+        4. Updates various wallets based on ticket status and channel
+        5. Manages jackpot contributions
+
+        Args:
+            *args: Variable length argument list passed to parent save method
+            **kwargs: Arbitrary keyword arguments passed to parent save method
+
+        Returns:
+            The result of the parent save method
+        """
+        # Save associated batch if it exists but hasn't been saved yet
+        if self.batch is not None and self.batch.pk is None:
+            self.batch.save()
+
+        # Handle agent profile settings
+        if self.agent_profile:
+            self.is_agent = True
+
+        # Track iCash local counting for agent profiles
+        if self.paid and self.agent_profile and not self.icash_local_counted:
+            self.icash_local_counted = True
+
+        # Round financial values to 2 decimal places
+        self.amount_paid = round(self.amount_paid, 2)
+        self.expected_amount = round(self.expected_amount, 2)
+        self.illusion = round(self.illusion, 2)
+
+        # Handle existing ticket updates
+        if self.pk:
+            # Retrieve original values for comparison
+            _original_paid = False
+
+            old = self.__class__.objects.get(pk=self._get_pk_val())
+            for field in self.__class__._meta.fields:
+                if field.name == "paid":
+                    _original_paid = field.value_from_object(old)
+                elif field.name in ["amount_paid", "instant_cashout_drawn"]:
+                    field.value_from_object(old)
+
+            # Process payment status changes
+            if _original_paid != self.paid and self.paid is True:
+                self._process_payment()
+
+                # UPDATING RTP AND RTO IN GAME DAILY ACTIVITIES TABLE
+                if self.agent_profile:
+                    _from_lotto_agent = True if self.agent_profile.terminal_id is not None else False
+                    try:
+                        GamesDailyActivities.create_record(
+                            game_type=self.lottery_type, rtp=self.rtp, rto=self.rto, from_lotto_agent=_from_lotto_agent
+                        )
+                    except:
+                        pass
+
+                    try:
+                        RetailWalletTransactions.create_debit_record_for_game_play(
+                            amount=self.amount_paid,
+                            wallet_value=self.rtp,
+                            rto_value=self.rto,
+                            rtp_value=self.rtp,
+                            game_type=self.lottery_type,
+                        )
+                    except:
+                        pass
+
+                    agent_instance = self.agent_profile
+                    GeneralRetailLottoGames.create_record(
+                        agent_phone_number=agent_instance.phone,
+                        agent_name=agent_instance.full_name,
+                        agent_email=agent_instance.email,
+                        batch_uuid=self.batch.batch_uuid,
+                        game_play_id=self.game_play_id,
+                        game_pin=self.pin,
+                        lucky_number=self.ticket,
+                        purchase_amount=self.amount_paid,
+                        lotto_db_id=self.id,
+                        paid=self.paid,
+                        number_of_ticket=self.number_of_ticket,
+                        rtp=self.rtp,
+                        rto=self.rto,
+                        commission_percentage=self.commission_per,
+                        type_of_agent=agent_instance.agent_type,
+                        lotto_game_type=self.lottery_type,
+                        potential_winnings=self.potential_winning,
+                    )
+
+        # Set unique game play ID
+        self.unique_game_play_id = self.game_play_id
+
+        # Ensure batch is saved
+        if self.batch is not None and self.batch.pk is None:
+            self.batch.save()
+
+        # Call parent save method
+        return super(LottoTicket, self).save(*args, **kwargs)
+
+    def _process_payment(self):
+        """
+        Process payment for an existing ticket that has been marked as paid.
+
+        This method handles:
+        - Commission calculations
+        - RTP (Return to Player) calculations
+        - RTO (Return to Operator) calculations
+        - Jackpot contributions
+        - Wallet updates
+
+        Returns:
+            None, or early returns None if batch is missing
+        """
+
+        # Early return if batch is missing
+        if self.batch is None:
+            return None
+
+        amount_paid_after_removing_comission = self.amount_paid
+
+        # Handle POS_AGENT / MOBILE APP / WEB channels
+        if self.channel in ["POS_AGENT", "MOBILE", "WEB"]:
+            self._process_agent_mobile_web_payment(amount_paid_after_removing_comission)
+        else:
+            # Handle USSD and other channels
+            self._process_other_channels_payment(amount_paid_after_removing_comission)
+
+        # Update agent commission
+        if self.channel == "POS_AGENT":
+            if self.agent_profile:
+                AgentWallet.reward_commission(
+                    agent_id=self.agent_profile.id,
+                    game_play_amount=self.amount_paid,
+                    commission_type="COMMISSION_ON_GAME_PLAY",
+                    game_type=self.lottery_type,
+                    rto_amount=self.rto,
+                )

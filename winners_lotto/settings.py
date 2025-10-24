@@ -48,7 +48,9 @@ INSTALLED_APPS = [
     "import_export",
 
     #APPS
+    "account",
     "main"
+
 ]
 
 MIDDLEWARE = [
@@ -84,7 +86,7 @@ TEMPLATES = [
 WSGI_APPLICATION = "winners_lotto.wsgi.application"
 
 #User
-# AUTH_USER_MODEL = "account.User"
+AUTH_USER_MODEL = "account.User"
 
 # Auth Token
 # REST_AUTH_TOKEN_MODEL = "account.models.Token"
@@ -104,12 +106,30 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+
+if DEBUG:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql_psycopg2",
+            "NAME": config("DATABASE_NAME"),
+            "USER": config("DATABASE_USER"),
+            "PASSWORD": config("DATABASE_PASSWORD"),
+            "HOST": config("DATABASE_HOST"),
+            "PORT": config("DATABASE_PORT"),
+        }
     }
-}
+
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql_psycopg2",
+            "NAME": config("LIVE_DATABASE_NAME"),
+            "USER": config("LIVE_DATABASE_USER"),
+            "PASSWORD": config("LIVE_DATABASE_PASSWORD"),
+            "HOST": "localhost",
+            "PORT": "",
+        }
+    }
 
 
 # Password validation
@@ -180,3 +200,5 @@ AUTHENTICATION_BACKENDS = [
     "account.authentication.EmailBackend",
     # "account.authentication.PhoneBackend",
 ]
+
+# ENVIRONMENT = config("ENVIRONMENT")
