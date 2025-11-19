@@ -1,7 +1,7 @@
 from django.contrib import admin
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin
-from .models import LottoTicket, LotteryBatch, LotteryGlobalJackPot
+from .models import LottoTicket, LotteryBatch, LotteryGlobalJackPot, LotteryWinnersTable, DisbursementTable
 from main.forms import  LotteryBatchCleanForm #FreemiumFixturesCleanForm,
 # from .models import ConstantVariable
 # # Register your models here.
@@ -23,6 +23,14 @@ class LotteryGlobalJackPotResource(resources.ModelResource):
 class LotteryGlobalJackPotResource(resources.ModelResource):
     class Meta:
         model = LotteryGlobalJackPot
+
+class LotteryWinnersTableResource(resources.ModelResource):
+    class Meta:
+        model = LotteryWinnersTable
+
+class DisbursementTableResource(resources.ModelResource):
+    class Meta:
+        model = DisbursementTable
 
 class LottoTicketResourceAdmin(ImportExportModelAdmin):
 
@@ -83,6 +91,41 @@ class LotteryBatchResourceAdmin(ImportExportModelAdmin):
         "run_banker_draw",
         "run_salary_for_life_draw",
     ]
+
+class LotteryWinnersTableResourceAdmin(ImportExportModelAdmin):
+        resource_class = LotteryWinnersTableResource
+        search_fields = [
+            "batch__batch_uuid",
+            "game_play_id",
+            "run_batch_id",
+            "phone_number",
+            "win_type",
+            "pool",
+            "share",
+            "earning",
+            "total_jackpot_amount",
+        ]
+        list_filter = ("date_won", "lottery_source_tag", "win_type")
+        date_hierarchy = "date_won"
+
+        def get_list_display(self, request):
+            return [field.name for field in self.model._meta.concrete_fields]
+
+class DisbursementTableResourceAdmin(ImportExportModelAdmin):
+    autocomplete_fields = ["lottery_batch", "lotery_winner"]
+    resource_class = DisbursementTableResource
+    search_fields = [
+        "player_phone_num",
+        "lottery_batch__batch_uuid",
+        "payout_account_num",
+        "payout_account_name",
+        "payout_bank_name",
+    ]
+    list_filter = ("date_created", "is_disbursed", "stattus")
+    date_hierarchy = "date_created"
+
+    def get_list_display(self, request):
+        return [field.name for field in self.model._meta.concrete_fields]
 
     # @admin.action(description="MANUALLY RUN DRAW BANKER WINNING FILTER")
     # def filterbankwinners(modeladmin, request, queryset):
@@ -208,4 +251,5 @@ class LotteryGlobalJackPotResourceAdmin(ImportExportModelAdmin):
 admin.site.register(LottoTicket, LottoTicketResourceAdmin)
 admin.site.register(LotteryBatch, LotteryBatchResourceAdmin)
 admin.site.register(LotteryGlobalJackPot, LotteryGlobalJackPotResourceAdmin)
-
+admin.site.register(LotteryWinnersTable, LotteryWinnersTableResourceAdmin)
+admin.site.register(DisbursementTable, DisbursementTableResourceAdmin)

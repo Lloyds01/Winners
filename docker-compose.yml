@@ -1,0 +1,452 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lotto_app
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    command: >
+      sh -c "
+            python manage.py makemigrations account main ads_tracker pos_app referral_system referral_system sport_app wallet_app web_app wyse_ussd awoof_app banker_lottery resources_app sms_campaign ticket_price &&
+            python3 manage.py migrate &&
+            python3 manage.py runserver 0.0.0.0:8000"
+    env_file:
+      - .env
+    networks:
+      - lotto_network
+    depends_on:
+      - db
+
+  db:
+    image: postgres:13-alpine
+    container_name: lotto_db
+    networks:
+      - lotto_network
+    volumes:
+      - dev-db-data:/var/lib/postgres/data
+    environment:
+      - POSTGRES_DB=devdb
+      - POSTGRES_USER=devuser
+      - POSTGRES_PASSWORD=changeme
+    ports:
+      - "5434:5432"
+
+#   celery:
+#     image: libertylotto-app
+#     networks:
+#       - lotto_network
+#     depends_on:
+#       - lotto_redis
+#       - app
+#     env_file:
+#       - .env
+#     command: celery -A liberty_lotto.celery worker --loglevel=INFO --concurrency 1 -P solo
+
+#   celery-icash:
+#     image: libertylotto-app
+#     networks:
+#       - lotto_network
+#     depends_on:
+#       - lotto_redis
+#       - app
+#     env_file:
+#       - .env
+#     command: celery -A liberty_lotto.celery worker -Q icash_new -n icash_new --loglevel=INFO --concurrency 1 -P solo
+
+#   celery_resolve_pending_icash_sms_task:
+#     image: libertylotto-app
+#     networks:
+#       - lotto_network
+#     depends_on:
+#       - lotto_redis
+#       - app
+#     env_file:
+#       - .env
+#     command: celery  -A liberty_lotto.celery worker -Q celery_resolve_pending_icash_sms_task -n celery_resolve_pending_icash_sms_task --pool=solo --loglevel=INFO
+
+#   telco_menu_worker:
+#     image: libertylotto-app
+#     networks:
+#       - lotto_network
+#     depends_on:
+#       - lotto_redis
+#       - app
+#     env_file:
+#       - .env
+#     command: celery  -A liberty_lotto.celery worker -Q telco_menu_worker -n telco_menu_worker  --loglevel=INFO --concurrency 1
+
+#   bbc_datasync1:
+#     image: libertylotto-app
+#     networks:
+#       - lotto_network
+#     depends_on:
+#       - lotto_redis
+#       - app
+#     env_file:
+#       - .env
+#     command: celery -A liberty_lotto.celery worker -Q bbc_datasync1 -n bbc_datasync1 --loglevel=INFO
+
+#   telco_session_logs:
+#     image: libertylotto-app
+#     networks:
+#       - lotto_network
+#     depends_on:
+#       - lotto_redis
+#       - app
+#     env_file:
+#       - .env
+#     command: celery  -A liberty_lotto.celery worker -Q telco_session_logs -n telco_session_logs  --loglevel=INFO --concurrency 1
+
+#   icash_cb:
+#     image: libertylotto-app
+#     networks:
+#       - lotto_network
+#     depends_on:
+#       - lotto_redis
+#       - app
+#     env_file:
+#       - .env
+#     command: celery  -A liberty_lotto.celery worker -Q icash_cb -n icash_cb --pool=solo --loglevel=INFO --concurrency 1
+
+#   bbc_datasync2:
+#     image: libertylotto-app
+#     networks:
+#       - lotto_network
+#     depends_on:
+#       - lotto_redis
+#       - app
+#     env_file:
+#       - .env
+#     command: celery -A liberty_lotto.celery worker -Q bbc_datasync2 -n bbc_datasync2 --loglevel=INFO --concurrency=1 -P solo
+
+#   celery_ads_postback:
+#     image: libertylotto-app
+#     networks:
+#       - lotto_network
+#     depends_on:
+#       - lotto_redis
+#       - app
+#     env_file:
+#       - .env
+#     command: celery -A liberty_lotto.celery worker -Q celery_ads_postback -n celery_ads_postback  --loglevel=INFO --concurrency 1
+
+#   bbc_datasync7:
+#     image: libertylotto-app
+#     networks:
+#       - lotto_network
+#     depends_on:
+#       - lotto_redis
+#       - app
+#     env_file:
+#       - .env
+#     command: celery -A liberty_lotto.celery worker -Q bbc_datasync7 -n bbc_datasync7 --loglevel=INFO --concurrency 1 -P solo
+
+#   celery1:
+#     image: libertylotto-app
+#     networks:
+#       - lotto_network
+#     depends_on:
+#       - lotto_redis
+#       - app
+#     env_file:
+#       - .env
+#     command: celery -A liberty_lotto.celery worker -Q celery1 -n celery1  --loglevel=INFO --concurrency 1
+
+#   bbc_datasync:
+#     image: libertylotto-app
+#     networks:
+#       - lotto_network
+#     depends_on:
+#       - lotto_redis
+#       - app
+#     env_file:
+#       - .env
+#     command: celery -A liberty_lotto.celery worker -Q bbc_datasync -n bbc_datasync --loglevel=INFO --concurrency=1
+
+#   bbc_datasync5:
+#     image: libertylotto-app
+#     networks:
+#       - lotto_network
+#     depends_on:
+#       - lotto_redis
+#       - app
+#     env_file:
+#       - .env
+#     command: celery -A liberty_lotto.celery worker -Q bbc_datasync5 -n bbc_datasync5 --loglevel=INFO --concurrency=1
+
+#   bbc_datasync4:
+#     image: libertylotto-app
+#     networks:
+#       - lotto_network
+#     depends_on:
+#       - lotto_redis
+#       - app
+#     env_file:
+#       - .env
+#     command: celery -A liberty_lotto.celery worker -Q bbc_datasync4 -n bbc_datasync4 --loglevel=INFO --concurrency=1
+
+#   bbc_datasync6:
+#     image: libertylotto-app
+#     networks:
+#       - lotto_network
+#     depends_on:
+#       - lotto_redis
+#       - app
+#     env_file:
+#       - .env
+#     command: celery -A liberty_lotto.celery worker -Q bbc_datasync6 -n bbc_datasync6 --loglevel=INFO --concurrency=1
+
+#   bbc_datasync3:
+#     image: libertylotto-app
+#     networks:
+#       - lotto_network
+#     depends_on:
+#       - lotto_redis
+#       - app
+#     env_file:
+#       - .env
+#     command: celery -A liberty_lotto.celery worker -Q bbc_datasync3 -n bbc_datasync3 --loglevel=INFO --concurrency=1
+
+#   process_telco_sync_queue2:
+#     image: libertylotto-app
+#     networks:
+#       - lotto_network
+#     depends_on:
+#       - lotto_redis
+#       - app
+#     env_file:
+#       - .env
+#     command: celery -A liberty_lotto.celery worker -Q process_telco_sync_queue2 -n process_telco_sync_queue2 --loglevel=INFO --concurrency 1
+
+#   celery5:
+#     image: libertylotto-app
+#     networks:
+#       - lotto_network
+#     depends_on:
+#       - lotto_redis
+#       - app
+#     env_file:
+#       - .env
+#     command: celery -A liberty_lotto.celery worker -Q celery5 -n celery5  --loglevel=INFO --concurrency 1
+
+#   telcocharge1:
+#     image: libertylotto-app
+#     networks:
+#       - lotto_network
+#     depends_on:
+#       - lotto_redis
+#       - app
+#     env_file:
+#       - .env
+#     command: celery -A liberty_lotto.celery worker -Q telcocharge1 -n telcocharge1  --loglevel=INFO --concurrency 1
+
+#   process_telco_sync_queue1:
+#     image: libertylotto-app
+#     networks:
+#       - lotto_network
+#     depends_on:
+#       - lotto_redis
+#       - app
+#     env_file:
+#       - .env
+#     command: celery -A liberty_lotto.celery worker -Q process_telco_sync_queue1 -n process_telco_sync_queue1 --loglevel=INFO --concurrency 1
+
+#   icash_new:
+#     image: libertylotto-app
+#     networks:
+#       - lotto_network
+#     depends_on:
+#       - lotto_redis
+#       - app
+#     env_file:
+#       - .env
+#     command: celery -A liberty_lotto.celery worker -Q icash_new -n icash_new --loglevel=INFO --concurrency 1 -P solo
+
+#   bbc_datasync8:
+#     image: libertylotto-app
+#     networks:
+#       - lotto_network
+#     depends_on:
+#       - lotto_redis
+#       - app
+#     env_file:
+#       - .env
+#     command: celery -A liberty_lotto.celery worker -Q bbc_datasync8 -n bbc_datasync8 --loglevel=INFO --concurrency=1
+
+#   celery6:
+#     image: libertylotto-app
+#     networks:
+#       - lotto_network
+#     depends_on:
+#       - lotto_redis
+#       - app
+#     env_file:
+#       - .env
+#     command: celery -A liberty_lotto.celery worker -Q celery6 -n celery6 --pool=solo --loglevel=INFO
+
+#   process_telco_sync_queue:
+#     image: libertylotto-app
+#     networks:
+#       - lotto_network
+#     depends_on:
+#       - lotto_redis
+#       - app
+#     env_file:
+#       - .env
+#     command: celery -A liberty_lotto.celery worker -Q process_telco_sync_queue -n process_telco_sync_queue  --loglevel=INFO --concurrency 1
+
+#   telcoreq:
+#     image: libertylotto-app
+#     networks:
+#       - lotto_network
+#     depends_on:
+#       - lotto_redis
+#       - app
+#     env_file:
+#       - .env
+#     command: celery -A liberty_lotto.celery worker -Q telcoreq -n telcoreq  --loglevel=INFO --concurrency 1
+
+#   telcocharge:
+#     image: libertylotto-app
+#     networks:
+#       - lotto_network
+#     depends_on:
+#       - lotto_redis
+#       - app
+#     env_file:
+#       - .env
+#     command: celery -A liberty_lotto.celery worker -Q telcocharge -n telcocharge  --loglevel=INFO --concurrency 1
+
+#   process_telco_sync_queue3:
+#     image: libertylotto-app
+#     networks:
+#       - lotto_network
+#     depends_on:
+#       - lotto_redis
+#       - app
+#     env_file:
+#       - .env
+#     command: celery -A liberty_lotto.celery worker -Q process_telco_sync_queue3 -n process_telco_sync_queue3 --loglevel=INFO --concurrency 1
+
+#   celery4:
+#     image: libertylotto-app
+#     networks:
+#       - lotto_network
+#     depends_on:
+#       - lotto_redis
+#       - app
+#     env_file:
+#       - .env
+#     command: celery -A liberty_lotto.celery worker -Q celery4 -n celery4  --loglevel=INFO --concurrency 1
+
+#   celery2:
+#     image: libertylotto-app
+#     networks:
+#       - lotto_network
+#     depends_on:
+#       - lotto_redis
+#       - app
+#     env_file:
+#       - .env
+#     command: celery -A liberty_lotto.celery worker -Q celery2 -n celery2 --pool=solo --loglevel=INFO
+
+#   celerynitroswitchdatasync:
+#     image: libertylotto-app
+#     networks:
+#       - lotto_network
+#     depends_on:
+#       - lotto_redis
+#       - app
+#     env_file:
+#       - .env
+#     command: celery -A liberty_lotto.celery worker -Q celerynitroswitchdatasync -n celerynitroswitchdatasync  --loglevel=INFO --concurrency 1
+
+#   celery_lotto_sms_campaign:
+#     image: libertylotto-app
+#     networks:
+#       - lotto_network
+#     depends_on:
+#       - lotto_redis
+#       - app
+#     env_file:
+#       - .env
+#     command: celery -A liberty_lotto.celery worker -Q celery_lotto_sms_campaign -n celery_lotto_sms_campaign  --loglevel=INFO --concurrency 1
+
+#   celery_resolve_pending_sal4life_sms_task:
+#     image: libertylotto-app
+#     networks:
+#       - lotto_network
+#     depends_on:
+#       - lotto_redis
+#       - app
+#     env_file:
+#       - .env
+#     command: celery -A liberty_lotto.celery worker -Q celery_resolve_pending_sal4life_sms_task -n celery_resolve_pending_sal4life_sms_task --pool=solo --loglevel=INFO
+
+#   mtn_campaign:
+#     image: libertylotto-app
+#     networks:
+#       - lotto_network
+#     depends_on:
+#       - lotto_redis
+#       - app
+#     env_file:
+#       - .env
+#     command: celery -A liberty_lotto.celery worker -Q mtn_campaign -n mtn_campaign  --loglevel=INFO --concurrency 1
+
+#   celery_resolve_pending_fast_fingers_sms_task:
+#     image: libertylotto-app
+#     networks:
+#       - lotto_network
+#     depends_on:
+#       - lotto_redis
+#       - app
+#     env_file:
+#       - .env
+#     command: celery -A liberty_lotto.celery worker -Q celery_resolve_pending_fast_fingers_sms_task -n celery_resolve_pending_fast_fingers_sms_task --pool=solo --loglevel=INFO
+
+#   celeryanalytics:
+#     image: libertylotto-app
+#     networks:
+#       - lotto_network
+#     depends_on:
+#       - lotto_redis
+#       - app
+#     env_file:
+#       - .env
+#     command: celery -A liberty_lotto.celery worker -Q celeryanalytics -n celeryanalytics  --loglevel=INFO --concurrency=1
+
+#   celery-beat:
+#     image: libertylotto-app
+#     networks:
+#       - lotto_network
+#     depends_on:
+#       - app
+#       - lotto_redis
+#     env_file:
+#       - .env
+#     command: celery -A liberty_lotto beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+
+#   lotto_redis:
+#     image: redis:alpine
+#     container_name: lotto_redis
+#     restart: always
+#     ports:
+#       - "6399:6379"
+#     command: [ "redis-server", "--appendonly", "yes" ]
+#     networks:
+#       - lotto_network
+#     volumes:
+#       - redis_data:/data
+
+# volumes:
+#   dev-db-data:
+#   redis_data:
+
+
+# networks:
+#   lotto_network:
+#     driver: bridge
